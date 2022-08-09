@@ -4,6 +4,7 @@ const fs = require('fs')
 const express = require('express')
 const bodyParser = require('body-parser');
 const SpotifyWebApi = require('spotify-web-api-node')
+const YoutubeSearchApi=require('youtube-search-api');
 
 const scopes = [
     'ugc-image-upload',
@@ -98,27 +99,30 @@ app.get('/main', (req, res) => {
 
 app.post('/api', (req, res) => {
 
-    spotifyApi
-        .getPlaylistTracks(req.body.playlistid, {
-            offset: 1,
-            limit: 100,
-            fields: 'items'
+    spotifyApi.getPlaylistTracks(req.body.playlistid, {
+        offset: 1,
+        limit: 100,
+        fields: 'items'
+    }).then((data) => {
+        let tracks = []
+
+        for (let track_obj of data.body.items) {
+            const track = track_obj.track
+            tracks.push(track + ': ' + track.artists[0].name)
+        }
+
+        links = []
+
+        tracks.forEach((entry) => {
+            YoutubeSearchApi.GetListByKeyword(entry, '', '1')
+            .then((ans) => {links.push(ans.items[0].id)})
         })
-        .then((data) => {
-            let tracks = [];
 
-            for (let track_obj of data.body.items) {
-                const track = track_obj.track
-                tracks.push(track + ': ' + track.artists[0].name)
-            }
-
-            res.json(tracks)
-        },
-            function(err) {
-                res.json(err)
-            }
-        )
-
+        setTimeout(() => {
+            res.json(links)
+        }, 5000)
+        
+    })
 })
 
 const PORT = 3001 || process.env.PORT
