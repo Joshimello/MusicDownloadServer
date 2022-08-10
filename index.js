@@ -147,6 +147,10 @@ app.post('/api', (req, res) => {
                 // youtube api data -> get video -> ffmpeg to mp3 -> get link
                 let mp3_links = []
 
+                if (!fs.existsSync('music')) {
+                    fs.mkdirSync("music");
+                }
+
                 track_ids.forEach((song) => {
 
                     let stream = ytdl(song.id, {
