@@ -9,28 +9,6 @@ const readline = require('readline')
 const ytdl = require('ytdl-core')
 const ffmpeg = require('fluent-ffmpeg')
 
-const scopes = [
-    'ugc-image-upload',
-    'user-read-playback-state',
-    'user-modify-playback-state',
-    'user-read-currently-playing',
-    'streaming',
-    'app-remote-control',
-    'user-read-email',
-    'user-read-private',
-    'playlist-read-collaborative',
-    'playlist-modify-public',
-    'playlist-read-private',
-    'playlist-modify-private',
-    'user-library-modify',
-    'user-library-read',
-    'user-top-read',
-    'user-read-playback-position',
-    'user-read-recently-played',
-    'user-follow-read',
-    'user-follow-modify'
-]
-
 const config = JSON.parse(fs.readFileSync("config.json", "utf8"))
 const spotifyApi = new SpotifyWebApi({
     clientId: config.clientId,
@@ -44,60 +22,14 @@ app.use(bodyParser.json())
 app.use(bodyParser.urlencoded({ extended: true }))
 
 app.get('/', (req, res) => {
-    res.send(`
-        <a href="/login">Login with Spotify</a>
-    `)
-})
+    res.sendFile(path.join(__dirname+'/html/main.html'))
 
-app.get('/login', (req, res) => {
-    res.redirect(spotifyApi.createAuthorizeURL(scopes))
-})
-
-app.get('/callback', (req, res) => {
-    const error = req.query.error
-    const code = req.query.code
-    const state = req.query.state
-
-    if (error) {
-        console.error('Callback Error:', error)
-        res.send(`Callback Error: ${error}`)
-        return
-    }
-
-    spotifyApi
-    .authorizationCodeGrant(code)
-    .then(data => {
-        const access_token = data.body['access_token']
-        const refresh_token = data.body['refresh_token']
-        const expires_in = data.body['expires_in']
-
-        spotifyApi.setAccessToken(access_token)
-        spotifyApi.setRefreshToken(refresh_token)
-
-        res.redirect('/main')
-
-        setInterval(async () => {
-            const data = await spotifyApi.refreshAccessToken()
-            const access_token = data.body['access_token']
-
-            console.log('The access token has been refreshed!')
-            console.log('access_token:', access_token)
-            spotifyApi.setAccessToken(access_token)
-        }, expires_in / 2 * 1000)
+    spotifyApi.clientCredentialsGrant()
+    .then((data) => {
+        spotifyApi.setAccessToken(data.body['access_token'])
+    }, (err) => {
+        console.log('Error', err)
     })
-    .catch(error => {
-        console.error('Error getting Tokens:', error)
-        res.send(`Error getting Tokens: ${error}`)
-    })
-})
-
-app.get('/main', (req, res) => {
-    res.send(`
-        <form action="/api" method="post">
-            <input name="playlistid" type="text" placeholder="Playlist ID" value="3NEKLoQGcF4ltWSW9fDaAw">
-            <input type="submit">
-        </form>
-    `)
 })
 
 app.get("/music/:file", (req, res) => {
@@ -109,9 +41,8 @@ app.get("/music/:file", (req, res) => {
     )
 })
 
-app.post('/api', (req, res) => {
-
-    getAllSongs(req.body.playlistid)
+app.get('/api/:playlistid', (req, res) => {
+    getAllSongs(req.params.playlistid)
     .then((data) => {
 
         // process tracks: spotify api -> filtered song & artist
