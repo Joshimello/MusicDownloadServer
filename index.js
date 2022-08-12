@@ -8,6 +8,7 @@ const youtubeApi = require('youtube-search-without-api-key')
 const readline = require('readline')
 const ytdl = require('ytdl-core')
 const ffmpeg = require('fluent-ffmpeg')
+const JSZip = require('jszip')
 
 const config = JSON.parse(fs.readFileSync("config.json", "utf8"))
 const spotifyApi = new SpotifyWebApi({
@@ -82,6 +83,8 @@ app.get('/api/:playlistid', (req, res) => {
                     fs.mkdirSync("music");
                 }
 
+                var zip = new JSZip()
+
                 track_ids.forEach((song) => {
 
                     let stream = ytdl(song.id, {
@@ -93,6 +96,7 @@ app.get('/api/:playlistid', (req, res) => {
                     .save(`music/${song.name}.mp3`)
                     .on('end', () => {
                         mp3_links.push(`http://${req.headers.host}/music/${song.name}.mp3`)
+                        zip.file(`music/${song.name}.mp3`);
                     })
                 })
 
@@ -101,6 +105,13 @@ app.get('/api/:playlistid', (req, res) => {
                         console.log(mp3_links.length)
                         setTimeout(mp3_links_check, 500)
                     } else {
+                        zip
+                        .generateNodeStream({type:'nodebuffer',streamFiles:true})
+                        .pipe(fs.createWriteStream(`music/${req.params.playlistid}.zip`))
+                        .on('finish', () => {
+                            mp3_links.unshift(`http://${req.headers.host}/music/${req.params.playlistid}.mp3`)
+                        })
+
                         res.json(mp3_links)
                     }
                 }
