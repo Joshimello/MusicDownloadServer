@@ -8,9 +8,9 @@ const youtubeApi = require('youtube-search-without-api-key')
 const readline = require('readline')
 const ytdl = require('ytdl-core')
 const ffmpeg = require('fluent-ffmpeg')
-const JSZip = require('jszip')
+var AdmZip = require('adm-zip')
 
-const config = JSON.parse(fs.readFileSync("config.json", "utf8"))
+const config = JSON.parse(fs.readFileSync('config.json', 'utf8'))
 const spotifyApi = new SpotifyWebApi({
     clientId: config.clientId,
     clientSecret: config.clientSecret,
@@ -33,9 +33,9 @@ app.get('/', (req, res) => {
     })
 })
 
-app.get("/music/:file", (req, res) => {
+app.get('/music/:file', (req, res) => {
     res.download(
-        path.join(__dirname, "music/" + req.params.file),
+        path.join(__dirname, 'music/' + req.params.file),
         (err) => {
             if (err) res.status(404).send("<pre>404</pre>")
         }
@@ -61,13 +61,14 @@ app.get('/api/:playlistid', (req, res) => {
             youtubeApi.search(song + 'audio')
             .then((res) => {
                 if (res.length != 0) {
-                    track_ids.push({"name": song, "id": res[0].id.videoId})
+                    track_ids.push({'name': song, 'id': res[0].id.videoId})
                 } else {
                     unfound.push(song)
                 }
             })
         })
 
+        // check if links all found
         const track_ids_check = () => {
             if (track_ids.length != tracks.length - unfound.length) {
                 console.log(track_ids.length)
@@ -76,14 +77,14 @@ app.get('/api/:playlistid', (req, res) => {
                 console.log(track_ids.length)
                 unfound.length == 0 ? null : console.log(unfound)
 
-                // youtube api data -> get video -> ffmpeg to mp3 -> get link
+                // youtube api data -> get video -> ffmpeg to mp3 -> get link & zip
                 let mp3_links = []
 
                 if (!fs.existsSync('music')) {
-                    fs.mkdirSync("music");
+                    fs.mkdirSync('music');
                 }
 
-                var zip = new JSZip()
+                var zip = new AdmZip()
 
                 track_ids.forEach((song) => {
 
@@ -95,24 +96,25 @@ app.get('/api/:playlistid', (req, res) => {
                     .audioBitrate(128)
                     .save(`music/${song.name}.mp3`)
                     .on('end', () => {
-                        mp3_links.push(`http://${req.headers.host}/music/${song.name}.mp3`)
-                        zip.file(`music/${song.name}.mp3`);
+                        mp3_links.push([`http://${req.headers.host}/music/${song.name}.mp3`, song.name])
+                        zip.addLocalFile(`music/${song.name}.mp3`);
                     })
                 })
 
+                // check if all files downloaded -> zip up -> send data to client
                 const mp3_links_check = () => {
                     if (mp3_links.length != tracks.length - unfound.length) {
                         console.log(mp3_links.length)
                         setTimeout(mp3_links_check, 500)
                     } else {
-                        zip
-                        .generateNodeStream({type:'nodebuffer',streamFiles:true})
-                        .pipe(fs.createWriteStream(`music/${req.params.playlistid}.zip`))
-                        .on('finish', () => {
-                            mp3_links.unshift(`http://${req.headers.host}/music/${req.params.playlistid}.mp3`)
-                        })
+                        zip.writeZip(`music/${req.params.playlistid}.zip`)
 
-                        res.json(mp3_links)
+                        let final_data = {
+                            'zipped': `http://${req.headers.host}/music/${req.params.playlistid}.zip`,
+                            'songs': mp3_links
+                        }
+
+                        res.json(final_data)
                     }
                 }
 
