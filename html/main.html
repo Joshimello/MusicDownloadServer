@@ -23,8 +23,9 @@
 		    .then((res) => res.json())
 		    .then((data) => {
 		    	$('body').empty()
-		    	data.forEach((entry) => {
-		    		$('body').append(`<a href="${entry}">${entry}</a>`)
+		    	$('body').append(`<a href=${data.zipped}>Playlist Download</a>`)
+		    	data.songs.forEach((entry) => {
+		    		$('body').append(`<a href="${entry[0]}">${entry[1]}</a>`)
 		    	})
 		    })
 		    .catch((err) => {
