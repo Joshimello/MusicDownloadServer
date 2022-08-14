@@ -20,9 +20,10 @@
 	</div>
 	<script>
 		$('#form').submit((e) => {
+			var playlistid = $('#playlistid').val()
 			e.preventDefault()
-			fetch('/api/' + $('#playlistid').val(), {
-		        method: 'GET',
+			fetch('/api/' + playlistid, {
+		        method: 'GET'
 		    })
 		    .then((res) => res.json())
 		    .then((data) => {
@@ -60,12 +61,32 @@
 		    	console.log(`Error: ${err}`)
 		    })
 
-		    $('#main').empty()
+			$('#main').empty()
 		    $('#main').append(`
-		    	<div class="d-flex flex-column border border-warning rounded p-1 mt-1 align-items-center justify-content-center">
-    				<span>Loading...</span>
-    			</div
+		    	<div class="d-flex flex-row border border-warning rounded p-1 mt-1 align-items-center justify-content-center">
+    				<span class="me-auto" id="task">Loading...</span>
+    				<span id="progress">0/0</span>
+    			</div>
 		    `)
+
+		    const progress = () => {
+			    fetch('/api/socket/' + playlistid, {
+			    	method: 'GET'
+			    })
+			    .then((res) => res.json())
+			    .then((data) => {
+			    	$('#task').text(`${data.text.task}: ${data.text.name}`)
+			    	$('#progress').text(`${data.number.index}/${data.number.goal}`)
+			    	setTimeout(progress, 500)
+			    })
+			    .catch((err) => {
+			    	return
+			    })
+
+			    console.log('logging')
+		    }
+		    
+		    progress()
 		})
 	</script>
 </body>
