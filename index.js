@@ -43,6 +43,14 @@ app.get('/music/:file', (req, res) => {
 })
 
 app.get('/api/:playlistid', (req, res) => {
+    if (req.params.playlistid.length != 22) {
+        res.json({
+            error: 'Wrong playlist ID'
+        })
+
+        return
+    }
+
     getAllSongs(req.params.playlistid)
     .then((data) => {
 
@@ -109,6 +117,8 @@ app.get('/api/:playlistid', (req, res) => {
                     } else {
                         zip.writeZip(`music/${req.params.playlistid}.zip`)
 
+                        mp3_links.length == 0 ? mp3_links.push(['https://youtu.be/dQw4w9WgXcQ', 'Empty Playlist? Here is a song to add!']) : null
+
                         let final_data = {
                             'zipped': `http://${req.headers.host}/music/${req.params.playlistid}.zip`,
                             'songs': mp3_links
@@ -123,6 +133,25 @@ app.get('/api/:playlistid', (req, res) => {
         }
 
         track_ids_check()
+    })
+    .catch((err) => {
+        if (err.body.error.message == 'Bad request') {
+            res.json({
+                error: 'Invalid playlist ID'
+            })
+            return
+        }
+        
+        if (err.body.error.message == 'No token provided') {
+            res.json({
+                error: 'Refresh the page'
+            })
+            return
+        }
+        
+        res.json({
+            error: 'Unknown error'
+        })
     })
 })
 
