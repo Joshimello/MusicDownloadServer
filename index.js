@@ -23,7 +23,7 @@ app.use(bodyParser.json())
 app.use(bodyParser.urlencoded({ extended: true }))
 
 // send main.html & grant spotify access
-app.get('/', (req, res) => {
+app.get('.', (req, res) => {
     res.sendFile(path.join(__dirname+'/html/main.html'))
 
     spotifyApi.clientCredentialsGrant()
@@ -35,7 +35,7 @@ app.get('/', (req, res) => {
 })
 
 // open music folder for download requests
-app.get('/music/:file', (req, res) => {
+app.get('music/:file', (req, res) => {
     res.download(
         path.join(__dirname, 'music/' + req.params.file),
         (err) => {
@@ -47,7 +47,7 @@ app.get('/music/:file', (req, res) => {
 var in_progress = {}
 
 // main workload script
-app.get('/api/:playlistid', (req, res) => {
+app.get('api/:playlistid', (req, res) => {
     let playlistid = req.params.playlistid
     in_progress[playlistid] = {
         'text': {
@@ -59,7 +59,6 @@ app.get('/api/:playlistid', (req, res) => {
             'index': 0,
             'goal': 0
         }
-        
     }
 
     if (playlistid.length != 22) {
@@ -196,7 +195,7 @@ app.get('/api/:playlistid', (req, res) => {
 })
 
 // socket for tracking progress
-app.get('/api/socket/:playlistid', (req, res) => {
+app.get('api/socket/:playlistid', (req, res) => {
     res.json(in_progress[req.params.playlistid])
 })
 
