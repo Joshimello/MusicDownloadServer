@@ -20,14 +20,14 @@ Make sure you have [Node.js](https://nodejs.org/en/) and [npm](https://www.npmjs
 	```
 3. Copy or rename config_template.json to config.json, and edit contents.
   
-  ```
-  {
-    "clientId": your client id from spotify,
+  	```
+  	{
+    	  "clientId": your client id from spotify,
 	  "clientSecret": your client secret from spotify,
 	  "redirectUri": your redirect uri,
 	  "port": the port you want to use
-  }
-  ```
+  	}
+  	```
 4. Start the application.
 
 	```
