@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0/dist/css/bootstrap.min.css" rel="stylesheet">
+	<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
+	<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0/dist/js/bootstrap.bundle.min.js"></script>
+	<script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
+	<title>Demo - Spotiuwu</title>
+</head>
+<body class="vh-100 d-flex align-items-center justify-content-center flex-column p-2">
+	<div class="col-lg-6 col-md-8 col-10 mh-100 overflow-auto" id="main">
+		<form class="input-group" id="form">
+			<input class="input-group-text form-control" id="playlistid" type="text" placeholder="3NEKLoQGcF4ltWSW9fDaAw" value="3NEKLoQGcF4ltWSW9fDaAw">
+			<button class="btn btn-outline-warning" id="submitbtn" type="submit">
+				<i class="fas fa-search"></i>
+			</button>
+		</form>
+	</div>
+	<script>
+		let final_data = {
+			"zipped":"music/3NEKLoQGcF4ltWSW9fDaAw.zip",
+			"songs":[
+				["music/Tiramisu - Hong Kong Boyfriend.mp3","Tiramisu - Hong Kong Boyfriend"],
+				["music/HEARTBREAKER - Stirfryboyz.mp3","HEARTBREAKER - Stirfryboyz"],
+				["music/Dancing with my phone - HYBS.mp3","Dancing with my phone - HYBS"],
+				["music/METROPOLIS - Stirfryboyz.mp3","METROPOLIS - Stirfryboyz"],
+				["music/Cheapest Flight - PREP.mp3","Cheapest Flight - PREP"]
+			]
+		}
+
+		$('#form').submit((e) => {
+			$('#playlistid').val('Loading...')
+			e.preventDefault()
+			setTimeout(() => {
+				$('#main').empty()
+				$('#main').append(`
+					<div class="d-flex flex-row border border-warning rounded p-1 mt-1 align-items-center bg-warning">
+						<span class="me-auto ms-2">Zipped Playlist</span>
+						<a class="btn btn-warning border-0" href="${final_data.zipped}"><i class="fas fa-download"></i></a>
+					</div>
+				`)
+
+		    	final_data.songs.forEach((entry) => {
+		    		$('#main').append(`
+		    			<div class="d-flex flex-row border border-warning rounded p-1 mt-1 align-items-center">
+							<span class="me-auto ms-2">${entry[1]}</span>
+							<a class="btn btn-outline-warning border-0" href="${entry[0]}"><i class="fas fa-download"></i></a>
+						</div>
+		    		`)
+		    	})
+			}, 1000)
+		})
+	</script>
+</body>
+</html>
