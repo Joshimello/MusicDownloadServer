@@ -54,6 +54,7 @@ Make sure you have [Node.js](https://nodejs.org/en/) and [npm](https://www.npmjs
 - [Adm Zip](https://github.com/cthackers/adm-zip): Zip up all the mp3.
 
 ## To-Do
+- Add other music services other than Spotify.
 - Switch live updating to socket.io & improve live logging.
 - Rewrite main script to process song by song.
 - Implement Spotify api & Youtube api directly.
