@@ -2,7 +2,7 @@
 Spotify playlist -> MP3 & ZIP.
 
 ## Demo
-Frontend demo: [Demo](https://joshimello.github.io/node-spotifuwu/)
+Frontend demo: [Demo](https://joshimello.github.io/node-spotifuwu/)  
 Live demo (might be offline): [Spotifuwu](https://spotifuwu.chibimello.com)
 
 ## Installation
