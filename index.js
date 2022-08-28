@@ -10,6 +10,9 @@ const ytdl = require('ytdl-core')
 const ffmpeg = require('fluent-ffmpeg')
 const AdmZip = require('adm-zip')
 
+const app = express()
+app.use(bodyParser.json())
+app.use(bodyParser.urlencoded({ extended: true }))
 const config = JSON.parse(fs.readFileSync('config.json', 'utf8'))
 const spotifyApi = new SpotifyWebApi({
     clientId: config.clientId,
@@ -17,21 +20,20 @@ const spotifyApi = new SpotifyWebApi({
     redirectUri: config.redirectUri
 })
 
-const app = express()
-
-app.use(bodyParser.json())
-app.use(bodyParser.urlencoded({ extended: true }))
+// create download folder
+if (!fs.existsSync('music')) {
+    fs.mkdirSync('music');
+}
 
 // send main.html & grant spotify access
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname+'/html/main.html'))
 
     spotifyApi.clientCredentialsGrant()
-    .then((data) => {
-        spotifyApi.setAccessToken(data.body['access_token'])
-    }, (err) => {
-        console.log('Error', err)
-    })
+    .then(
+        data => { spotifyApi.setAccessToken(data.body['access_token']) },
+        err => { console.log('Error', err) }
+    )
 })
 
 // open music folder for download requests
@@ -44,159 +46,74 @@ app.get('/music/:file', (req, res) => {
     )
 })
 
-var in_progress = {}
-
-// main workload script
+// on get reqest
 app.get('/api/:playlistid', (req, res) => {
-    let playlistid = req.params.playlistid
-    in_progress[playlistid] = {
-        'text': {
-            'task': 'Loading',
-            'name': 'Loading',
-        },
-        
-        'number': {
-            'index': 0,
-            'goal': 0
-        }
-    }
 
-    if (playlistid.length != 22) {
-        res.json({
-            error: 'Wrong playlist ID'
-        })
-
+    if (req.params.playlistid.length != 22) {
+        res.json({ error: 'Wrong playlist ID' })
         return
     }
 
-    getAllSongs(playlistid)
-    .then((data) => {
+    var foundSongs = []
+    var unfoundSongs = []
+    var zip = new AdmZip()
 
-        // process tracks: spotify api -> filtered song & artist
-        let tracks = []
+    getAllSongs(req.params.playlistid)
+    .then(songList => {
 
-        data.forEach((track) => {
-            tracks.push(track.track.name + ' - ' + track.track.artists[0].name)
-        })
+        let promises = []
+        songList.forEach(songData => {
 
-        // get youtube link: filtered song & artist -> youtube api
-        let track_ids = []
-        let unfound = []
+            promises.push( new Promise(resolve => {
 
-        tracks.forEach((song, index) => {
-            youtubeApi.search(song + 'audio')
-            .then((res) => {
-                if (res.length != 0) {
-                    track_ids.push({'name': song, 'id': res[0].id.videoId})
-                } else {
-                    unfound.push(song)
-                }
+                youtubeApi.search(`${songData.track.name} ${songData.track.artists[0].name} audio`)
+                .then(foundSongID => {
 
-                Object.assign(in_progress[playlistid].text = {
-                    'task': 'Quarrying',
-                    'name': song
-                })
-            })
-        })
+                    console.log(foundSongID[0].id.videoId)
 
-        // check if links all found
-        const track_ids_check = () => {
-            if (track_ids.length != tracks.length - unfound.length) {
+                    if (foundSongID[0].id.videoId.length == 0) { unfoundSongs.push(songData.track.name) }
+                    else {
 
-                Object.assign(in_progress[playlistid].number = {
-                    'index': track_ids_check,
-                    'goal': tracks.length
-                })
+                        let songFileName = `${songData.track.artists[0].name} - ${songData.track.name}.mp3`
+                        ffmpeg( ytdl( foundSongID[0].id.videoId, {quality: 'highestaudio'}) )
+                        .audioBitrate(128).save(`music/${songFileName}`).on('end', () => {
 
-                setTimeout(track_ids_check, 200)
-            } else {
-                unfound.length == 0 ? null : console.log(unfound)
+                            foundSongs.push([`http://${req.headers.host}/music/${songFileName}`, songFileName])
+                            zip.addLocalFile(`music/${songFileName}`)
+                            resolve()
 
-                // youtube api data -> get video -> ffmpeg to mp3 -> get link & zip
-                let mp3_links = []
-
-                if (!fs.existsSync('music')) {
-                    fs.mkdirSync('music');
-                }
-
-                var zip = new AdmZip()
-
-                track_ids.forEach((song, index) => {
-
-                    let stream = ytdl(song.id, {
-                        quality: 'highestaudio'
-                    })
-
-                    ffmpeg(stream)
-                    .audioBitrate(128)
-                    .save(`music/${song.name}.mp3`)
-                    .on('end', () => {
-                        mp3_links.push([`http://${req.headers.host}/music/${song.name}.mp3`, song.name])
-                        zip.addLocalFile(`music/${song.name}.mp3`);
-
-                        Object.assign(in_progress[playlistid].text = {
-                            'task': 'Downloading',
-                            'name': song.name
                         })
-                    })
-                })
-
-                // check if all files downloaded -> zip up -> send data to client
-                const mp3_links_check = () => {
-                    if (mp3_links.length != tracks.length - unfound.length) {
-
-                        Object.assign(in_progress[playlistid].number = {
-                            'index': mp3_links.length,
-                            'goal': tracks.length
-                        })
-
-                        setTimeout(mp3_links_check, 500)
-                    } else {
-                        zip.writeZip(`music/${playlistid}.zip`)
-
-                        mp3_links.length == 0 ? mp3_links.push(['https://youtu.be/dQw4w9WgXcQ', 'Empty Playlist? Here is a song to add!']) : null
-
-                        delete in_progress[playlistid]
-
-                        let final_data = {
-                            'zipped': `http://${req.headers.host}/music/${playlistid}.zip`,
-                            'songs': mp3_links
-                        }
-
-                        res.json(final_data)
                     }
-                }
+                })
+            }))
+        })
 
-                mp3_links_check()
-            }
-        }
+        Promise.all(promises).then(() => {
 
-        track_ids_check()
-    })
-    .catch((err) => {
-        if (err.body.error.message == 'Bad request') {
+            zip.writeZip(`music/${req.params.playlistid}.zip`)
+            foundSongs.length == 0 ? foundSongs.push(['https://youtu.be/dQw4w9WgXcQ', 'Empty Playlist? Here is a song to add!']) : null
             res.json({
-                error: 'Invalid playlist ID'
+                'zipped': `http://${req.headers.host}/music/${req.params.playlistid}.zip`,
+                'songs': foundSongs
             })
+
+        })
+    })
+
+    .catch(err => {
+        console.log(err)
+        if (err.body.error.message == 'Bad request') {
+            res.json({ error: 'Invalid playlist ID' })
             return
         }
         
         if (err.body.error.message == 'No token provided') {
-            res.json({
-                error: 'Refresh the page'
-            })
+            res.json({ error: 'Refresh the page' })
             return
         }
         
-        res.json({
-            error: 'Unknown error'
-        })
+        res.json({ error: 'Unknown error' })
     })
-})
-
-// socket for tracking progress
-app.get('/api/socket/:playlistid', (req, res) => {
-    res.json(in_progress[req.params.playlistid])
 })
 
 async function getAllSongs(id) {

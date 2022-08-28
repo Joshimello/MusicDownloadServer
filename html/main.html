@@ -68,25 +68,6 @@
     				<span id="progress">0/0</span>
     			</div>
 		    `)
-
-		    const progress = () => {
-			    fetch('/api/socket/' + playlistid, {
-			    	method: 'GET'
-			    })
-			    .then((res) => res.json())
-			    .then((data) => {
-			    	$('#task').text(`${data.text.task}: ${data.text.name}`)
-			    	$('#progress').text(`${data.number.index}/${data.number.goal}`)
-			    	setTimeout(progress, 500)
-			    })
-			    .catch((err) => {
-			    	return
-			    })
-
-			    console.log('logging')
-		    }
-		    
-		    progress()
 		})
 	</script>
 </body>
