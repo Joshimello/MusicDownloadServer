@@ -7,10 +7,15 @@ const SpotifyWebApi = require('spotify-web-api-node')
 const youtubeApi = require('youtube-search-without-api-key')
 const readline = require('readline')
 const ytdl = require('ytdl-core')
+const ffmpegPath = require('@ffmpeg-installer/ffmpeg').path
 const ffmpeg = require('fluent-ffmpeg')
 const AdmZip = require('adm-zip')
+const socketio = require('socket.io')
 
+ffmpeg.setFfmpegPath(ffmpegPath)
 const app = express()
+const server = http.createServer(app)
+const io = socketio(server)
 app.use(bodyParser.json())
 app.use(bodyParser.urlencoded({ extended: true }))
 const config = JSON.parse(fs.readFileSync('config.json', 'utf8'))
@@ -137,7 +142,6 @@ async function getSongs(id, offset) {
     return songs
 }
 
-const PORT = config.port || process.env.PORT
-app.listen(PORT, () => {
-    console.log('Running')
+server.listen(config.port || process.env.PORT, () => {
+    console.log(`Server running on port ${config.port}`)
 })
