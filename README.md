@@ -1,5 +1,5 @@
 # node-spotifuwu
-Spotify playlist -> MP3 & ZIP.
+Spotify and Youtube playlist into mp3 & zip
 
 ## Demo
 Frontend demo: [Demo](https://joshimello.github.io/node-spotifuwu/)  
