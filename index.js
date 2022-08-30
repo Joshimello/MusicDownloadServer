@@ -51,10 +51,14 @@ app.get('/music/:file', (req, res) => {
     )
 })
 
-// on get reqest
-app.get('/api/:playlistid', (req, res) => {
+io.on('connection', function (socket) {
+    socket.emit('connection:sid', socket.id);
+})
 
-    if (req.params.playlistid.length != 22) {
+// on get reqest
+app.get('/api', (req, res) => {
+
+    if (req.query.playlistid.length != 22) {
         res.json({ error: 'Wrong playlist ID' })
         return
     }
@@ -63,7 +67,7 @@ app.get('/api/:playlistid', (req, res) => {
     var unfoundSongs = []
     var zip = new AdmZip()
 
-    getAllSongs(req.params.playlistid)
+    getAllSongs(req.query.playlistid)
     .then(songList => {
 
         let promises = []
@@ -74,8 +78,6 @@ app.get('/api/:playlistid', (req, res) => {
                 youtubeApi.search(`${songData.track.name} ${songData.track.artists[0].name} audio`)
                 .then(foundSongID => {
 
-                    console.log(foundSongID[0].id.videoId)
-
                     if (foundSongID[0].id.videoId.length == 0) { unfoundSongs.push(songData.track.name) }
                     else {
 
@@ -85,6 +87,7 @@ app.get('/api/:playlistid', (req, res) => {
 
                             foundSongs.push([`http://${req.headers.host}/music/${songFileName}`, songFileName])
                             zip.addLocalFile(`music/${songFileName}`)
+                            io.to(req.query.socketid).emit('progress', songFileName)
                             resolve()
 
                         })
@@ -95,10 +98,10 @@ app.get('/api/:playlistid', (req, res) => {
 
         Promise.all(promises).then(() => {
 
-            zip.writeZip(`music/${req.params.playlistid}.zip`)
+            zip.writeZip(`music/${req.query.playlistid}.zip`)
             foundSongs.length == 0 ? foundSongs.push(['https://youtu.be/dQw4w9WgXcQ', 'Empty Playlist? Here is a song to add!']) : null
             res.json({
-                'zipped': `http://${req.headers.host}/music/${req.params.playlistid}.zip`,
+                'zipped': `http://${req.headers.host}/music/${req.query.playlistid}.zip`,
                 'songs': foundSongs
             })
 
