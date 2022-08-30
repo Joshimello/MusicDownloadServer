@@ -72,6 +72,7 @@ app.get('/api', (req, res) => {
         ytpl(req.query.playlistid)
         .then(songList => {
 
+            io.to(req.query.socketid).emit('total', `0/${songList.items.length}`)
             let promises = []
             songList.items.forEach(songData => {
 
@@ -79,11 +80,13 @@ app.get('/api', (req, res) => {
 
                     let songFileName = `${songData.title}.mp3`
                     ffmpeg( ytdl( songData.id, {quality: 'highestaudio'}) )
-                    .audioBitrate(128).save(`music/${songFileName}`).on('end', () => {
+                    .audioBitrate(128)
+                    .save(`music/${songFileName}`).on('end', () => {
 
                         foundSongs.push([`http://${req.headers.host}/music/${songFileName}`, songFileName])
                         zip.addLocalFile(`music/${songFileName}`)
                         io.to(req.query.socketid).emit('progress', songFileName)
+                        io.to(req.query.socketid).emit('total', `${foundSongs.length}/${songList.items.length}`)
                         resolve()
 
                     })

@@ -57,4 +57,8 @@ $('#form').submit((e) => {
     socket.on('progress', data => {
     	$('#task').text(data)
     })
+
+    socket.on('total', data => {
+   		$('#progress').text(data)
+    })
 })
