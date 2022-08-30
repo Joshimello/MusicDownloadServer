@@ -19,6 +19,7 @@
     "socket.io": "^4.5.1",
     "spotify-web-api-node": "^5.0.2",
     "youtube-search-without-api-key": "^1.0.7",
-    "ytdl-core": "^4.11.1"
+    "ytdl-core": "^4.11.1",
+    "ytpl": "^2.3.0"
   }
 }

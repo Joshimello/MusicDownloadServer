@@ -11,6 +11,7 @@ const ffmpegPath = require('@ffmpeg-installer/ffmpeg').path
 const ffmpeg = require('fluent-ffmpeg')
 const AdmZip = require('adm-zip')
 const socketio = require('socket.io')
+const ytpl = require('ytpl')
 
 ffmpeg.setFfmpegPath(ffmpegPath)
 const app = express()
@@ -58,70 +59,113 @@ io.on('connection', function (socket) {
 // on get reqest
 app.get('/api', (req, res) => {
 
-    if (req.query.playlistid.length != 22) {
-        res.json({ error: 'Wrong playlist ID' })
-        return
-    }
-
     var foundSongs = []
     var unfoundSongs = []
     var zip = new AdmZip()
 
-    getAllSongs(req.query.playlistid)
-    .then(songList => {
+    // youtube
+    if (req.query.playlistid.length == 34) {
+        ytpl(req.query.playlistid)
+        .then(songList => {
 
-        let promises = []
-        songList.forEach(songData => {
+            let promises = []
+            songList.items.forEach(songData => {
 
-            promises.push( new Promise(resolve => {
+                promises.push( new Promise(resolve => {
 
-                youtubeApi.search(`${songData.track.name} ${songData.track.artists[0].name} audio`)
-                .then(foundSongID => {
+                    let songFileName = `${songData.title}.mp3`
+                    ffmpeg( ytdl( songData.id, {quality: 'highestaudio'}) )
+                    .audioBitrate(128).save(`music/${songFileName}`).on('end', () => {
 
-                    if (foundSongID[0].id.videoId.length == 0) { unfoundSongs.push(songData.track.name) }
-                    else {
+                        foundSongs.push([`http://${req.headers.host}/music/${songFileName}`, songFileName])
+                        zip.addLocalFile(`music/${songFileName}`)
+                        io.to(req.query.socketid).emit('progress', songFileName)
+                        resolve()
 
-                        let songFileName = `${songData.track.artists[0].name} - ${songData.track.name}.mp3`
-                        ffmpeg( ytdl( foundSongID[0].id.videoId, {quality: 'highestaudio'}) )
-                        .audioBitrate(128).save(`music/${songFileName}`).on('end', () => {
-
-                            foundSongs.push([`http://${req.headers.host}/music/${songFileName}`, songFileName])
-                            zip.addLocalFile(`music/${songFileName}`)
-                            io.to(req.query.socketid).emit('progress', songFileName)
-                            resolve()
-
-                        })
-                    }
-                })
-            }))
-        })
-
-        Promise.all(promises).then(() => {
-
-            zip.writeZip(`music/${req.query.playlistid}.zip`)
-            foundSongs.length == 0 ? foundSongs.push(['https://youtu.be/dQw4w9WgXcQ', 'Empty Playlist? Here is a song to add!']) : null
-            res.json({
-                'zipped': `http://${req.headers.host}/music/${req.query.playlistid}.zip`,
-                'songs': foundSongs
+                    })
+                }))
             })
 
-        })
-    })
+            Promise.all(promises).then(() => {
 
-    .catch(err => {
-        console.log(err)
-        if (err.body.error.message == 'Bad request') {
+                zip.writeZip(`music/${req.query.playlistid}.zip`)
+                foundSongs.length == 0 ? foundSongs.push(['https://youtu.be/dQw4w9WgXcQ', 'Empty Playlist? Here is a song to add!']) : null
+                res.json({
+                    'zipped': `http://${req.headers.host}/music/${req.query.playlistid}.zip`,
+                    'songs': foundSongs
+                })
+            })
+        })
+
+        .catch(err => {
             res.json({ error: 'Invalid playlist ID' })
             return
-        }
-        
-        if (err.body.error.message == 'No token provided') {
-            res.json({ error: 'Refresh the page' })
-            return
-        }
-        
-        res.json({ error: 'Unknown error' })
-    })
+        })
+    }
+
+    // spotify
+    else if (req.query.playlistid.length == 22) {
+        getAllSongs(req.query.playlistid)
+        .then(songList => {
+
+            let promises = []
+            songList.forEach(songData => {
+
+                promises.push( new Promise(resolve => {
+
+                    youtubeApi.search(`${songData.track.name} ${songData.track.artists[0].name} audio`)
+                    .then(foundSongID => {
+
+                        if (foundSongID[0].id.videoId.length == 0) { unfoundSongs.push(songData.track.name) }
+                        else {
+
+                            let songFileName = `${songData.track.artists[0].name} - ${songData.track.name}.mp3`
+                            ffmpeg( ytdl( foundSongID[0].id.videoId, {quality: 'highestaudio'}) )
+                            .audioBitrate(128).save(`music/${songFileName}`).on('end', () => {
+
+                                foundSongs.push([`http://${req.headers.host}/music/${songFileName}`, songFileName])
+                                zip.addLocalFile(`music/${songFileName}`)
+                                io.to(req.query.socketid).emit('progress', songFileName)
+                                resolve()
+
+                            })
+                        }
+                    })
+                }))
+            })
+
+            Promise.all(promises).then(() => {
+
+                zip.writeZip(`music/${req.query.playlistid}.zip`)
+                foundSongs.length == 0 ? foundSongs.push(['https://youtu.be/dQw4w9WgXcQ', 'Empty Playlist? Here is a song to add!']) : null
+                res.json({
+                    'zipped': `http://${req.headers.host}/music/${req.query.playlistid}.zip`,
+                    'songs': foundSongs
+                })
+
+            })
+        })
+
+        .catch(err => {
+            console.log(err)
+            if (err.body.error.message == 'Bad request') {
+                res.json({ error: 'Invalid playlist ID' })
+                return
+            }
+            
+            if (err.body.error.message == 'No token provided') {
+                res.json({ error: 'Refresh the page' })
+                return
+            }
+            
+            res.json({ error: 'Unknown error' })
+        })
+    }
+
+    else {
+        res.json({ error: 'Wrong playlist ID' })
+        return
+    }
 })
 
 async function getAllSongs(id) {
