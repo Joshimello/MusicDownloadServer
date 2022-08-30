@@ -23,7 +23,7 @@ Make sure you have [Node.js](https://nodejs.org/en/) and [npm](https://www.npmjs
   
   	```
   	{
-    	  "clientId": your client id from spotify,
+   	  "clientId": your client id from spotify,
 	  "clientSecret": your client secret from spotify,
 	  "redirectUri": your redirect uri,
 	  "port": the port you want to use
@@ -47,18 +47,17 @@ Make sure you have [Node.js](https://nodejs.org/en/) and [npm](https://www.npmjs
 **Backend**
 - [Node.js](https://github.com/nodejs/node): Main runtime.
 - [Express](https://github.com/expressjs/express): Web framework.
+- [Socket.io](https://github.com/TimeForANinja/node-ytpl): Realtime updates.
 - [Spotify Web API Node](https://github.com/thelinmichael/spotify-web-api-node): Wrapper for spotify's api.
 - [Youtube Search](https://github.com/appit-online/youtube-search): Grab data from youtube.
 - [Ytdl Core](https://github.com/fent/node-ytdl-core): Save data in video format.
+- [Ytpl](https://github.com/TimeForANinja/node-ytpl): Wrapper for youtube playlist api.
 - [Fluent FFmpeg](https://github.com/fluent-ffmpeg/node-fluent-ffmpeg): Transpose video to mp3.
 - [Adm Zip](https://github.com/cthackers/adm-zip): Zip up all the mp3.
 
 ## To-Do
-- Add other music services other than Spotify.
-- Switch live updating to socket.io & improve live logging.
-- Rewrite main script to process song by song.
-- Implement Spotify api & Youtube api directly.
-- Improve async code.
+- Add more music services?
+- Error callbacks
 
 ## Contribute
 Always welcomed to improve anything or add suggestions! 
