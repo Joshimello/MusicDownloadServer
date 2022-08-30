@@ -115,7 +115,7 @@ app.get('/api', (req, res) => {
         getAllSongs(req.query.playlistid)
         .then(songList => {
 
-            io.to(req.query.socketid).emit('total', `0/${songList.items.length}`)
+            io.to(req.query.socketid).emit('total', `0/${songList.length}`)
             let promises = []
             songList.forEach(songData => {
 
@@ -134,7 +134,7 @@ app.get('/api', (req, res) => {
                                 foundSongs.push([`http://${req.headers.host}/music/${songFileName}`, songFileName])
                                 zip.addLocalFile(`music/${songFileName}`)
                                 io.to(req.query.socketid).emit('progress', songFileName)
-                                io.to(req.query.socketid).emit('total', `${foundSongs.length}/${songList.items.length}`)
+                                io.to(req.query.socketid).emit('total', `${foundSongs.length}/${songList.length}`)
                                 resolve()
 
                             })
