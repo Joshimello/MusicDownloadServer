@@ -33,13 +33,17 @@ if (!fs.existsSync('music')) {
 
 // send main.html & grant spotify access
 app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname+'/html/main.html'))
+    res.sendFile(path.join(__dirname+'/public/main.html'))
 
     spotifyApi.clientCredentialsGrant()
     .then(
         data => { spotifyApi.setAccessToken(data.body['access_token']) },
         err => { console.log('Error', err) }
     )
+})
+
+app.get('/main.js', (req, res) => {
+    res.sendFile(path.join(__dirname+'/public/main.js'))
 })
 
 // open music folder for download requests
